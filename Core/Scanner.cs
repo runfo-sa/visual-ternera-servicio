@@ -8,20 +8,19 @@ namespace Core
         public const string TEST_PATH = "C:\\soft\\PiQuatroRunfo\\Etiquetas";
         private static readonly HashAlgorithm hasher = SHA256.Create();
 
-        public static List<Etiqueta> GetEtiquetas(string path)
+        public static Etiqueta[] GetEtiquetas(string path)
         {
-            string[] files = Directory.GetFiles(path);
-            List<Etiqueta> etiquetas = new(files.Length);
+            string[] files = Directory.GetFiles(path, "*.e01");
+            Etiqueta[] etiquetas = new Etiqueta[files.Length];
 
-            foreach (var f in files)
+            for (int i = 0; i < files.Length; i++)
             {
-                if (Path.GetExtension(f).Equals(".e01", StringComparison.CurrentCultureIgnoreCase))
-                {
-                    string name = Path.GetFileNameWithoutExtension(f);
-                    string date = File.GetLastWriteTime(f).ToString();
-                    string hash = GetHashString(hasher.ComputeHash(File.ReadAllBytes(f)));
-                    etiquetas.Add(new Etiqueta(name, date, hash));
-                }
+                var f = files[i];
+
+                string name = Path.GetFileNameWithoutExtension(f).ToLower();
+                string date = File.GetLastWriteTime(f).ToString();
+                string hash = GetHashString(hasher.ComputeHash(File.ReadAllBytes(f)));
+                etiquetas[i] = new Etiqueta(name, date, hash);
             }
 
             return etiquetas;

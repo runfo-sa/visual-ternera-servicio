@@ -7,8 +7,10 @@ namespace Server.Models
     /// </summary>
     public enum Status
     {
-        Ok,
-        Bad
+        Okay,
+        Sobrantes,
+        Desactualizada,
+        DesactualizadaSobrantes,
     }
 
     /// <summary>

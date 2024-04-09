@@ -2,11 +2,11 @@
 
 namespace Core
 {
-    public class Client(string Id, List<Etiqueta> Etiquetas)
+    public class Client(string Id, Etiqueta[] Etiquetas)
     {
         public string Id { get; set; } = Id;
 
-        public List<Etiqueta> Etiquetas { get; set; } = Etiquetas;
+        public Etiqueta[] Etiquetas { get; set; } = Etiquetas;
 
         public override String ToString()
         {

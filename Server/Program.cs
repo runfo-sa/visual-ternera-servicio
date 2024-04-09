@@ -45,9 +45,10 @@ internal class Program
         app.MapPost("/validateClient", async (ClientStatusDb db, Client client, HttpContext context) =>
         {
             Console.WriteLine("DEBUG: " + client.ToString());
+            Console.WriteLine("DEBUG: " + client.Etiquetas.Length);
             Console.WriteLine("DEBUG: " + context.Connection.RemoteIpAddress?.ToString());
 
-            Status status = Analysis.CheckClient(client.Etiquetas, watcher.ServerEtiquetas);
+            Status status = Analysis.CheckClient(client, watcher.ServerEtiquetas);
 
             ClientStatus? clientStatus = await db.Clients.FindAsync(client.Id);
             if (clientStatus is null)

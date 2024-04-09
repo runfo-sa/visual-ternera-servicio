@@ -1,4 +1,5 @@
 ﻿using Core;
+using System.Collections.Frozen;
 
 namespace Server.Logic
 {
@@ -25,7 +26,7 @@ namespace Server.Logic
             NotifyFilter = NotifyFilters.Attributes | NotifyFilters.CreationTime | NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size
         };
 
-        public List<Etiqueta> ServerEtiquetas = Scanner.GetEtiquetas(SERVER_PATH);
+        public FrozenSet<Etiqueta> ServerEtiquetas = Scanner.GetEtiquetas(SERVER_PATH).ToFrozenSet();
 
         public Watcher()
         {
@@ -39,7 +40,7 @@ namespace Server.Logic
         private void UpdateList(object sender, FileSystemEventArgs e)
         {
             Console.WriteLine("Updating server list...");
-            ServerEtiquetas = Scanner.GetEtiquetas(SERVER_PATH);
+            ServerEtiquetas = Scanner.GetEtiquetas(SERVER_PATH).ToFrozenSet();
         }
     }
 }

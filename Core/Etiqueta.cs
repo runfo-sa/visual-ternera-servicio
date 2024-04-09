@@ -1,10 +1,23 @@
 ﻿namespace Core
 {
-    public record struct Etiqueta(string Name, string Hash, string Date)
+    /// <summary>
+    /// Registro de un archivo de etiquetas.
+    /// </summary>
+    /// <param name="Name">Especificación: En minusculas</param>
+    /// <param name="Hash">Especificación: SHA256</param>
+    /// <param name="Date">Especificación: dd/mm/yyyy hh:mm:ss</param>
+    public readonly record struct Etiqueta(string Name, string Hash, string Date);
+
+    public class EtiquetaCompareName : IEqualityComparer<Etiqueta>
     {
-        public override readonly string ToString()
+        public bool Equals(Etiqueta x, Etiqueta y)
         {
-            return Name + " - " + Hash + " - " + Date;
+            return x.Name == y.Name;
+        }
+
+        public int GetHashCode(Etiqueta et)
+        {
+            return et.Name.GetHashCode();
         }
     }
 }

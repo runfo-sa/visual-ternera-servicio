@@ -27,7 +27,7 @@ namespace Client
 
         public async Task SendEtiquetas()
         {
-            List<Etiqueta> etiquetas = Scanner.GetEtiquetas(Scanner.TEST_PATH);
+            Etiqueta[] etiquetas = Scanner.GetEtiquetas(Scanner.TEST_PATH);
             StringContent jsonBody = new(JsonSerializer.Serialize(
                 new Core.Client(Ip, etiquetas), jsonOptions),
                 Encoding.ASCII,
