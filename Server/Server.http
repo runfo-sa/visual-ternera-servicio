@@ -1,31 +1,32 @@
 @Server_HostAddress = https://localhost:7164
 
 
-POST {{Server_HostAddress}}/validateClient
+POST {{Server_HostAddress}}/validarcliente
 Content-Type: application/json
+request-key: ABC123
 
 {
-  "id": "192.168.10.25",
+  "name": "192.168.10.25",
   "etiquetas": [
     {
-      "name": "primaria_china",
       "hash": "ASVFWEHWHWE684765weggewegwegwgggwwWW",
-      "date": "2024-04-08 11:20:55"
+      "date": "2024-04-08 11:20:55",
+      "name": "primaria_china"
     },
     {
-      "name": "primaria_china1",
       "hash": "ASVFWEHWHWE684765weggewegwegwgggwwWW",
-      "date": "2024-04-08 11:20:55"
+      "date": "2024-04-08 11:20:55",
+      "name": "primaria_china1"
     },
     {
-      "name": "primaria_china2",
       "hash": "ASVFWEHWHWE684765weggewegwegwgggwwWW",
-      "date": "2024-04-08 11:20:55"
+      "date": "2024-04-08 11:20:55",
+      "name": "primaria_china2"
     },
     {
-      "name": "primaria_china3",
       "hash": "ASVFWEHWHWE684765weggewegwegwgggwwWW",
-      "date": "2024-04-08 11:20:55"
+      "date": "2024-04-08 11:20:55",
+      "name": "primaria_china3"
     }
   ]
 }

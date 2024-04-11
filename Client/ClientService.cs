@@ -82,6 +82,7 @@ namespace Client
                     Encoding.ASCII,
                     "application/json"
                 );
+                jsonBody.Headers.Add("request-key", "ABC123");
 
                 string uri = string.Format("https://{0}:{1}{2}", config.Data.Server!.Ip, config.Data.Server!.Port, route);
                 HttpResponseMessage response = await httpClient.PostAsync(uri, jsonBody);

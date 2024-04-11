@@ -16,7 +16,6 @@ internal class Program
         }
 
         builder.Services.AddSingleton<Config>();
-        //builder.Services.AddSingleton<ClientService>();
         builder.Services.AddHostedService<Worker>();
 
         var host = builder.Build();

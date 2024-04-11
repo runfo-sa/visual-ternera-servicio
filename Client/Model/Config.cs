@@ -8,14 +8,14 @@ namespace Client.Model
 
         public Config()
         {
-            string configDump = File.ReadAllText("C:\\Users\\Agustin.Marco\\Projects\\Apps\\C#\\visual_ternera\\Service\\Client\\config.toml");
+            string configDump = File.ReadAllText("config.toml");
             Data = Toml.ToModel<ConfigModel>(configDump);
         }
 
         public void Save()
         {
             string configDump = Toml.FromModel(Data);
-            File.WriteAllText("C:\\Users\\Agustin.Marco\\Projects\\Apps\\C#\\visual_ternera\\Service\\Client\\config.toml", configDump);
+            File.WriteAllText("config.toml", configDump);
         }
     }
 
