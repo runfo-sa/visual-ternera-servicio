@@ -1,7 +1,7 @@
 ﻿namespace Server.Models
 {
     /// <summary>
-    /// Estado del <see cref="Core.Client"/>
+    /// Estado del cliente
     /// </summary>
     public enum Status : byte
     {

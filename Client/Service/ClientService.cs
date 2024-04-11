@@ -1,28 +1,31 @@
-﻿using Client.Model;
-using Core;
+﻿using Core;
 using System.Net;
 using System.Text;
 using System.Text.Json;
 
-namespace Client
+namespace Client.Service
 {
+    /// <summary>
+    /// Servicio principal, se encarga de reportar toda la información necesaria al Servidor.
+    /// </summary>
     public sealed class ClientService
     {
-        private readonly JsonSerializerOptions jsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-        private readonly HttpClient httpClient = new();
-        private readonly string Ip = null!;
-        private readonly bool okay = true;
-        private readonly Config config = null!;
+        private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        private readonly ConfigService _config = null!;
+        private readonly HttpClient _client = new();
+        private readonly string _ip = null!;
+        private readonly bool _okay = true;
 
-        public ClientService(Config config)
+        public ClientService(ConfigService config)
         {
-            this.config = config;
+            _config = config;
 
+            // Busca la IPv4 de esta maquina
             foreach (IPAddress ip in Dns.GetHostEntry(Dns.GetHostName()).AddressList)
             {
                 if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
                 {
-                    Ip = ip.ToString();
+                    _ip = ip.ToString();
                     break;
                 }
             }
@@ -36,23 +39,23 @@ namespace Client
                 }
                 catch (MultipleInstalls err)
                 {
+                    _okay = false;
                     _ = SendMultipleInstalls();
-                    ReportError(err.Message + "\n" + string.Join('\n', err.Paths));
-                    okay = false;
+                    Reporter.ReportError(err.Message + "\n" + string.Join('\n', err.Paths));
                 }
                 catch (Exception err)
                 {
-                    ReportError(err.Message);
-                    okay = false;
+                    _okay = false;
+                    Reporter.ReportError(err.Message);
                 }
             }
         }
 
         public async Task SendEtiquetas()
         {
-            if (okay)
+            if (_okay)
             {
-                Etiqueta[] etiquetas = Scanner.GetEtiquetas(Scanner.TEST_PATH);
+                Etiqueta[] etiquetas = Scanner.GetEtiquetas(_config.Data.App!.PiPath!);
                 await Post("/validarcliente", etiquetas);
             }
         }
@@ -62,38 +65,44 @@ namespace Client
             await Post("/multiplesinstalaciones");
         }
 
-        private static void ReportError(string msg)
-        {
-            Console.Error.WriteLine($"{msg}");
-
-            var commonpath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var path = Path.Combine(commonpath, "VisualTerneraService\\");
-            var file = Logger.Log(path, msg);
-
-            System.Diagnostics.Process.Start("explorer.exe", string.Format("/select, \"{0}\"", file));
-        }
-
+        /// <summary>
+        /// Realiza una API Request del tipo POST al endpoint indicado.
+        /// <br/>
+        /// Las lista de etiquetas es opcional.
+        /// </summary>
         private async Task Post(string route, Etiqueta[]? etiquetas = null)
         {
             try
             {
-                StringContent jsonBody = new(JsonSerializer.Serialize(
-                    new Core.Client(Ip, etiquetas ?? []), jsonOptions),
+                StringContent jsonBody = new(
+                    JsonSerializer.Serialize(new Request(_ip, etiquetas), _jsonOptions),
                     Encoding.ASCII,
                     "application/json"
                 );
                 jsonBody.Headers.Add("request-key", "ABC123");
 
-                string uri = string.Format("https://{0}:{1}{2}", config.Data.Server!.Ip, config.Data.Server!.Port, route);
-                HttpResponseMessage response = await httpClient.PostAsync(uri, jsonBody);
+                string uri = string.Format(
+                    "https://{0}:{1}{2}",
+                    _config.Data.Server!.Ip,
+                    _config.Data.Server!.Port,
+                    route
+                );
+
+                HttpResponseMessage response = await _client.PostAsync(uri, jsonBody);
                 response.EnsureSuccessStatusCode();
             }
             catch (Exception err)
             {
-                ReportError(err.Message);
+                Reporter.ReportError(err.Message);
             }
         }
 
+        /// <summary>
+        /// Busca la instalación de <b>PiQuatro</b> en la <paramref name="unidad"/> de disco especificada.
+        /// </summary>
+        /// <returns>Dirección donde PiQuatro guarda las etiquetas</returns>
+        /// <exception cref="NoInstallsFound"/>
+        /// <exception cref="MultipleInstalls"/>
         private static string FindPiQuatro(string unidad)
         {
             DateTime date = DateTime.Now;
@@ -115,7 +124,7 @@ namespace Client
                 throw new MultipleInstalls(files);
             }
 
-            return files[0];
+            return Directory.GetParent(files[0])!.FullName + "\\Etiquetas";
         }
 
         private class NoInstallsFound : Exception

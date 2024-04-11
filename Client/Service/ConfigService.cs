@@ -1,12 +1,12 @@
 ﻿using Tomlyn;
 
-namespace Client.Model
+namespace Client.Service
 {
-    public class Config
+    public class ConfigService
     {
         public ConfigModel Data { get; set; }
 
-        public Config()
+        public ConfigService()
         {
             string configDump = File.ReadAllText("config.toml");
             Data = Toml.ToModel<ConfigModel>(configDump);
@@ -27,14 +27,14 @@ namespace Client.Model
 
     public class Server
     {
-        public string Ip { get; set; }
-        public string Port { get; set; }
+        public required string Ip { get; set; }
+        public required string Port { get; set; }
     }
 
     public class App
     {
-        public int IntervaloMins { get; set; }
-        public string Unidad { get; set; }
+        public required int IntervaloMins { get; set; }
+        public required string Unidad { get; set; }
         public string? PiPath { get; set; }
     }
 }

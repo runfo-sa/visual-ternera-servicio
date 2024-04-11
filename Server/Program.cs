@@ -9,13 +9,13 @@ using System.Threading.RateLimiting;
 
 internal class Program
 {
+    // TODO! Crear una clave secreta
     private const string REQUEST_KEY = "ABC123";
 
     private static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Tabla en Memoria
         builder.Services.AddSqlServer<ClientStatusDb>("Server=rafatest;Database=VisualTernera;Trusted_Connection=true;Encrypt=True;TrustServerCertificate=True");
 
         // Swager Docs
@@ -24,8 +24,8 @@ internal class Program
         {
             c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
             {
-                Title = "<Title>",
-                Description = "<Description>",
+                Title = "Visual Ternera - Controlador de Etiquetas",
+                Description = "Web API encargada de reportar el estado de etiquetas en cada puesto",
                 Version = "v1"
             });
         });
@@ -44,13 +44,10 @@ internal class Program
             })
         );
 
-
         var app = builder.Build();
         app.UseRateLimiter();
 
-        IServiceProvider services = app.Services;
-
-        Watcher watcher = services.GetService<Watcher>()
+        Watcher watcher = app.Services.GetService<Watcher>()
             ?? throw new Exception("La carpeta de etiquetas del servidor no esta siendo observada.");
 
         if (app.Environment.IsDevelopment())
@@ -61,6 +58,7 @@ internal class Program
 
         app.UseHttpsRedirection();
 
+        // Middleware que verifica si es una conexión valida y la termina en caso de no serlo.
         app.Use(async (context, next) =>
         {
             var query = context.Request.Headers.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
@@ -79,7 +77,7 @@ internal class Program
         app.UseRouting();
 
         // API Endpoints:
-        app.MapPost("/validarcliente", async (ClientStatusDb db, Client client, HttpContext context) =>
+        app.MapPost("/validarcliente", async (ClientStatusDb db, Request client, HttpContext context) =>
         {
             Status status = Analysis.CheckClient(client, watcher.ServerEtiquetas);
 
@@ -95,13 +93,12 @@ internal class Program
             }
             await db.SaveChangesAsync();
 
-            Console.WriteLine("DEBUG: " + db.Find(client.Name));
             return TypedResults.Ok();
         })
         .WithName("PostValidarCliente")
         .WithOpenApi();
 
-        app.MapPost("/multiplesinstalaciones", async (ClientStatusDb db, Client client, HttpContext context) =>
+        app.MapPost("/multiplesinstalaciones", async (ClientStatusDb db, Request client, HttpContext context) =>
         {
             ClientStatus? clientStatus = db.Find(client.Name);
             if (clientStatus is null)
@@ -114,8 +111,6 @@ internal class Program
                 clientStatus.UltimaConexion = DateTime.Now;
             }
             await db.SaveChangesAsync();
-
-            Console.WriteLine("DEBUG: " + db.Find(client.Name));
 
             var commonpath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
             var path = Path.Combine(commonpath, "VisualTerneraServer\\" + client.Name);

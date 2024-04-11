@@ -5,9 +5,12 @@ namespace Core
 {
     public static class Scanner
     {
-        public const string TEST_PATH = "C:\\soft\\PiQuatroRunfo\\Etiquetas";
         private static readonly HashAlgorithm hasher = SHA256.Create();
 
+        /// <summary>
+        /// Escanea <paramref name="path"/> en busca de archivos de etiquetas (con extension '.e01')
+        /// </summary>
+        /// <param name="path">Dirección a escanear</param>
         public static Etiqueta[] GetEtiquetas(string path)
         {
             string[] files = Directory.GetFiles(path, "*.e01");
@@ -20,12 +23,16 @@ namespace Core
                 string name = Path.GetFileNameWithoutExtension(f).ToLower();
                 string date = File.GetLastWriteTime(f).ToString();
                 string hash = GetHashString(hasher.ComputeHash(File.ReadAllBytes(f)));
+
                 etiquetas[i] = new Etiqueta(hash, date, name);
             }
 
             return etiquetas;
         }
 
+        /// <summary>
+        /// Convierte una array de <see cref="byte"/> en una <see cref="string"/> hexadecimal
+        /// </summary>
         private static string GetHashString(byte[] bytes)
         {
             StringBuilder sb = new();

@@ -13,9 +13,9 @@ namespace Server.Logic
         /// Analiza en busca de archivos faltantes, sobrantes o distintos.
         /// </summary>
         /// <returns><see cref="Status"/> - Estado del cliente</returns>
-        public static Status CheckClient(Client client, FrozenSet<Etiqueta> serverEtiquetas)
+        public static Status CheckClient(Request client, FrozenSet<Etiqueta> serverEtiquetas)
         {
-            FrozenSet<Etiqueta> clientEtiquetas = client.Etiquetas.ToFrozenSet();
+            FrozenSet<Etiqueta> clientEtiquetas = client.Etiquetas!.ToFrozenSet();
 
             // Obtenemos el conjunto distinto del servidor
             IEnumerable<Etiqueta> desactualizadas = serverEtiquetas.Except(clientEtiquetas);
@@ -37,10 +37,11 @@ namespace Server.Logic
                 var path = Path.Combine(commonpath, "VisualTerneraServer\\" + client.Name);
 
                 string list = (sobrantes is not null && status == Status.Sobrantes) ?
-                    "Sobrantes:\n" + string.Join('\n', sobrantes)
-                    : (sobrantes is not null) ?
+                    "Sobrantes:\n" + string.Join('\n', sobrantes) : (sobrantes is not null) ?
+
                     "Desactualizadas:\n" + string.Join('\n', desactualizadas) +
                     "\nSobrantes:\n" + string.Join('\n', sobrantes)
+
                     : "Desactualizadas:\n" + string.Join('\n', desactualizadas);
 
                 Logger.Log(path, list);

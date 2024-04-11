@@ -39,7 +39,6 @@ namespace Server.Logic
 
         private void UpdateList(object sender, FileSystemEventArgs e)
         {
-            Console.WriteLine("Updating server list...");
             ServerEtiquetas = Scanner.GetEtiquetas(SERVER_PATH).ToFrozenSet();
         }
     }
