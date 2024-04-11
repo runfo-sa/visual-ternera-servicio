@@ -1,7 +1,7 @@
-﻿[server]
+[server]
 ip = "localhost"
 port = "7164"
-
 [app]
 intervalo_mins = 10
 unidad = "C:"
+pi_path = "C:\\soft\\PiQuatroRunfo\\PIQuatro.exe"

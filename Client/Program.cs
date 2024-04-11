@@ -1,4 +1,5 @@
 using Client;
+using Client.Model;
 using Microsoft.Extensions.Logging.Configuration;
 using Microsoft.Extensions.Logging.EventLog;
 
@@ -14,7 +15,8 @@ internal class Program
             LoggerProviderOptions.RegisterProviderOptions<EventLogSettings, EventLogLoggerProvider>(builder.Services);
         }
 
-        builder.Services.AddSingleton<ClientService>();
+        builder.Services.AddSingleton<Config>();
+        //builder.Services.AddSingleton<ClientService>();
         builder.Services.AddHostedService<Worker>();
 
         var host = builder.Build();

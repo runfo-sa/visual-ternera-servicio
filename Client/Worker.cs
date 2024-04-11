@@ -1,8 +1,11 @@
+using Client.Model;
+
 namespace Client
 {
-    public class Worker(ILogger<Worker> logger, ClientService clientService) : BackgroundService
+    public class Worker(ILogger<Worker> logger, Config config) : BackgroundService
     {
         private readonly ILogger<Worker> _logger = logger;
+        private readonly ClientService clientService = new(config);
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -11,7 +14,9 @@ namespace Client
                 while (!stoppingToken.IsCancellationRequested)
                 {
                     await clientService.SendEtiquetas();
-                    await Task.Delay(TimeSpan.FromMinutes(10), stoppingToken);
+
+                    double interval = config.Data.App?.IntervaloMins ?? 10.0;
+                    await Task.Delay(TimeSpan.FromMinutes(interval), stoppingToken);
                 }
             }
             catch (OperationCanceledException)
