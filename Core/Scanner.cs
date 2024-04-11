@@ -20,7 +20,7 @@ namespace Core
                 string name = Path.GetFileNameWithoutExtension(f).ToLower();
                 string date = File.GetLastWriteTime(f).ToString();
                 string hash = GetHashString(hasher.ComputeHash(File.ReadAllBytes(f)));
-                etiquetas[i] = new Etiqueta(name, date, hash);
+                etiquetas[i] = new Etiqueta(hash, date, name);
             }
 
             return etiquetas;

@@ -6,7 +6,7 @@
     /// <param name="Name">Especificación: En minusculas</param>
     /// <param name="Hash">Especificación: SHA256</param>
     /// <param name="Date">Especificación: dd/mm/yyyy hh:mm:ss</param>
-    public readonly record struct Etiqueta(string Name, string Hash, string Date);
+    public readonly record struct Etiqueta(string Hash, string Date, string Name);
 
     public class EtiquetaCompareName : IEqualityComparer<Etiqueta>
     {

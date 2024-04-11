@@ -33,13 +33,8 @@ namespace Server.Logic
 
             if (status != Status.Okay)
             {
-                DateTime date = DateTime.Now;
-
                 var commonpath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-                var path = Path.Combine(commonpath, "VisualTerneraServer\\" + client.Id);
-                var file = Path.Combine(path, date.ToString("yyyy_MM_dd") + ".log");
-
-                Directory.CreateDirectory(path);
+                var path = Path.Combine(commonpath, "VisualTerneraServer\\" + client.Name);
 
                 string list = (sobrantes is not null && status == Status.Sobrantes) ?
                     "Sobrantes:\n" + string.Join('\n', sobrantes)
@@ -48,11 +43,7 @@ namespace Server.Logic
                     "\nSobrantes:\n" + string.Join('\n', sobrantes)
                     : "Desactualizadas:\n" + string.Join('\n', desactualizadas);
 
-                string separator = new('-', 128);
-                File.AppendAllText(file,
-                    string.Format("{0}\nError - {1}\n{2}\n{3}",
-                    separator, date.ToString("hh:mm:ss"), separator, list)
-                );
+                Logger.Log(path, list);
             }
 
             return status;

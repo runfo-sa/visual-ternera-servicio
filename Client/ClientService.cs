@@ -7,11 +7,12 @@ namespace Client
 {
     public sealed class ClientService
     {
-        private const string API_URI = "https://localhost:7164/validateClient";
+        private const string API_URI = "https://localhost:7164";
 
         private readonly JsonSerializerOptions jsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         private readonly HttpClient httpClient = new();
         private readonly string Ip = null!;
+        private readonly bool okay = true;
 
         public ClientService()
         {
@@ -19,30 +20,107 @@ namespace Client
             {
                 if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
                 {
-                    this.Ip = ip.ToString();
+                    Ip = ip.ToString();
                     break;
                 }
+            }
+
+            // if (path is in config) ...
+            // else
+            try
+            {
+                string path = FindPiQuatro();
+                //Save path to config...
+            }
+            catch (MultipleInstalls err)
+            {
+                _ = SendMultipleInstalls();
+                ReportError(err.Message + "\n" + string.Join('\n', err.Paths));
+                okay = false;
+            }
+            catch (Exception err)
+            {
+                ReportError(err.Message);
+                okay = false;
             }
         }
 
         public async Task SendEtiquetas()
         {
-            Etiqueta[] etiquetas = Scanner.GetEtiquetas(Scanner.TEST_PATH);
-            StringContent jsonBody = new(JsonSerializer.Serialize(
-                new Core.Client(Ip, etiquetas), jsonOptions),
-                Encoding.ASCII,
-                "application/json"
-            );
+            if (okay)
+            {
+                Etiqueta[] etiquetas = Scanner.GetEtiquetas(Scanner.TEST_PATH);
+                await Post("/validarcliente", etiquetas);
+            }
+        }
 
+        public async Task SendMultipleInstalls()
+        {
+            await Post("/multiplesinstalaciones");
+        }
+
+        private static void ReportError(string msg)
+        {
+            Console.Error.WriteLine($"{msg}");
+
+            var commonpath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var path = Path.Combine(commonpath, "VisualTerneraService\\");
+            var file = Logger.Log(path, msg);
+
+            System.Diagnostics.Process.Start("explorer.exe", string.Format("/select, \"{0}\"", file));
+        }
+
+        private async Task Post(string route, Etiqueta[]? etiquetas = null)
+        {
             try
             {
-                HttpResponseMessage response = await httpClient.PostAsync(API_URI, jsonBody);
+                StringContent jsonBody = new(JsonSerializer.Serialize(
+                    new Core.Client(Ip, etiquetas ?? []), jsonOptions),
+                    Encoding.ASCII,
+                    "application/json"
+                );
+
+                HttpResponseMessage response = await httpClient.PostAsync(API_URI + route, jsonBody);
                 response.EnsureSuccessStatusCode();
             }
             catch (Exception err)
             {
-                Console.Error.WriteLine($"{err}");
+                ReportError(err.Message);
             }
+        }
+
+        private static string FindPiQuatro()
+        {
+            DateTime date = DateTime.Now;
+            string[] files = Array.FindAll(
+                Directory.GetFiles("C:\\", "PiQuatro.exe", new EnumerationOptions
+                {
+                    IgnoreInaccessible = true,
+                    RecurseSubdirectories = true,
+                }),
+                f => File.GetLastWriteTime(f) > date.AddYears(-1)
+            );
+
+            if (files.Length == 0)
+            {
+                throw new NoInstallsFound();
+            }
+            else if (files.Length > 1)
+            {
+                throw new MultipleInstalls(files);
+            }
+
+            return files[0];
+        }
+
+        private class NoInstallsFound : Exception
+        {
+            public NoInstallsFound() : base("No se encontro ninguna instalación de PiQuatro") { }
+        }
+
+        private class MultipleInstalls(string[] paths) : Exception("Se encontraron mas de una instalación de PiQuatro")
+        {
+            public string[] Paths = paths;
         }
     }
 }

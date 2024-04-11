@@ -11,8 +11,6 @@ namespace Client
                 while (!stoppingToken.IsCancellationRequested)
                 {
                     await clientService.SendEtiquetas();
-                    //_logger.LogWarning("{}", etiquetas);
-
                     await Task.Delay(TimeSpan.FromMinutes(10), stoppingToken);
                 }
             }

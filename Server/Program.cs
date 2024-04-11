@@ -1,5 +1,4 @@
 using Core;
-using Microsoft.EntityFrameworkCore;
 using Server.Logic;
 using Server.Models;
 
@@ -10,7 +9,7 @@ internal class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Tabla en Memoria
-        builder.Services.AddDbContext<ClientStatusDb>(opt => opt.UseInMemoryDatabase("StatusClient"));
+        builder.Services.AddSqlServer<ClientStatusDb>("Server=rafatest;Database=VisualTernera;Trusted_Connection=true;Encrypt=True;TrustServerCertificate=True");
 
         // Swager Docs
         builder.Services.AddEndpointsApiExplorer();
@@ -42,29 +41,52 @@ internal class Program
         app.UseHttpsRedirection();
 
         // API Endpoints:
-        app.MapPost("/validateClient", async (ClientStatusDb db, Client client, HttpContext context) =>
+        app.MapPost("/validarcliente", async (ClientStatusDb db, Client client, HttpContext context) =>
         {
-            Console.WriteLine("DEBUG: " + client.ToString());
-            Console.WriteLine("DEBUG: " + client.Etiquetas.Length);
-            Console.WriteLine("DEBUG: " + context.Connection.RemoteIpAddress?.ToString());
-
             Status status = Analysis.CheckClient(client, watcher.ServerEtiquetas);
 
-            ClientStatus? clientStatus = await db.Clients.FindAsync(client.Id);
+            ClientStatus? clientStatus = db.Find(client.Name);
             if (clientStatus is null)
             {
-                await db.Clients.AddAsync(new ClientStatus(client.Id, status));
+                await db.EstadoCliente.AddAsync(new ClientStatus(client.Name, status));
             }
             else
             {
-                clientStatus = new ClientStatus(client.Id, status);
+                clientStatus.Estado = status;
+                clientStatus.UltimaConexion = DateTime.Now;
             }
             await db.SaveChangesAsync();
 
-            Console.WriteLine("DEBUG: " + db.Clients.Find(client.Id));
+            Console.WriteLine("DEBUG: " + db.Find(client.Name));
             return TypedResults.Ok();
         })
-        .WithName("PostValidateClient")
+        .WithName("PostValidarCliente")
+        .WithOpenApi();
+
+        app.MapPost("/multiplesinstalaciones", async (ClientStatusDb db, Client client, HttpContext context) =>
+        {
+            ClientStatus? clientStatus = db.Find(client.Name);
+            if (clientStatus is null)
+            {
+                await db.EstadoCliente.AddAsync(new ClientStatus(client.Name, Status.MultipleInstalaciones));
+            }
+            else
+            {
+                clientStatus.Estado = Status.MultipleInstalaciones;
+                clientStatus.UltimaConexion = DateTime.Now;
+            }
+            await db.SaveChangesAsync();
+
+            Console.WriteLine("DEBUG: " + db.Find(client.Name));
+
+            var commonpath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+            var path = Path.Combine(commonpath, "VisualTerneraServer\\" + client.Name);
+
+            Logger.Log(path, "Se encontraron mas de una instalación de PiQuatro, revisar el log del cliente para mas información.");
+
+            return TypedResults.Ok();
+        })
+        .WithName("PostMultiplesInstalaciones")
         .WithOpenApi();
 
         app.Run();

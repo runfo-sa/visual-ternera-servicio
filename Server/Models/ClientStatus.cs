@@ -1,31 +1,40 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Server.Models
 {
     /// <summary>
-    /// Estado del <see cref="Core.Client"/>
-    /// </summary>
-    public enum Status
-    {
-        Okay,
-        Sobrantes,
-        Desactualizada,
-        DesactualizadaSobrantes,
-    }
-
-    /// <summary>
     /// Representación del estado de un cliente en una tabla.
     /// </summary>
-    [PrimaryKey(nameof(Name))]
-    public class ClientStatus(string Name, Status Status)
+    [PrimaryKey(nameof(Id))]
+    [Index(nameof(Cliente), IsUnique = true)]
+    public class ClientStatus
     {
-        public string Name { get; private set; } = Name;
-        public Status Status { get; private set; } = Status;
-        public DateTime LastUpdate { get; private set; } = DateTime.Now;
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        [Column(Order = 1)]
+        public int Id { get; set; }
+        public string Cliente { get; set; }
+        public Status Estado { get; set; }
+        public DateTime UltimaConexion { get; set; }
+
+        public ClientStatus(string Cliente, Status Estado, DateTime UltimaConexion)
+        {
+            this.Cliente = Cliente;
+            this.Estado = Estado;
+            this.UltimaConexion = UltimaConexion;
+        }
+
+        public ClientStatus(string Cliente, Status Estado)
+        {
+            this.Cliente = Cliente;
+            this.Estado = Estado;
+            UltimaConexion = DateTime.Now;
+        }
 
         public override string ToString()
         {
-            return Name + "::" + Status + "::" + LastUpdate;
+            return Cliente + "::" + Estado + "::" + UltimaConexion;
         }
     }
 
@@ -34,6 +43,18 @@ namespace Server.Models
     /// </summary>
     public class ClientStatusDb(DbContextOptions options) : DbContext(options)
     {
-        public DbSet<ClientStatus> Clients { get; set; } = null!;
+        public DbSet<ClientStatus> EstadoCliente { get; set; } = null!;
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ClientStatus>().ToTable(b => b.IsMemoryOptimized());
+            modelBuilder.HasDefaultSchema("service");
+        }
+
+        public ClientStatus? Find(string Name)
+        {
+            List<ClientStatus> clientStatus = [.. EstadoCliente.Where(e => e.Cliente == Name)];
+            return clientStatus.IsNullOrEmpty() ? null : clientStatus.First();
+        }
     }
 }
