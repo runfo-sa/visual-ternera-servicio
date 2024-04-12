@@ -14,7 +14,10 @@ namespace Client.Service
         private readonly ConfigService _config = null!;
         private readonly HttpClient _client = new();
         private readonly string _ip = null!;
-        private readonly bool _okay = true;
+
+        // Indica el estado de este cliente
+        private readonly bool _error = false;
+        private readonly string? _errorMsg;
 
         public ClientService(ConfigService config)
         {
@@ -39,25 +42,26 @@ namespace Client.Service
                 }
                 catch (MultipleInstalls err)
                 {
-                    _okay = false;
                     _ = SendMultipleInstalls();
-                    Reporter.ReportError(err.Message + "\n" + string.Join('\n', err.Paths));
+                    _error = true;
+                    _errorMsg = err.Message + "\n" + string.Join('\n', err.Paths);
                 }
                 catch (Exception err)
                 {
-                    _okay = false;
-                    Reporter.ReportError(err.Message);
+                    _error = true;
+                    _errorMsg = err.Message;
                 }
             }
         }
 
         public async Task SendEtiquetas()
         {
-            if (_okay)
+            if (_error)
             {
-                Etiqueta[] etiquetas = Scanner.GetEtiquetas(_config.Data.App!.PiPath!);
-                await Post("/validarcliente", etiquetas);
+                throw new Exception(_errorMsg);
             }
+            Etiqueta[] etiquetas = Scanner.GetEtiquetas(_config.Data.App!.PiPath!);
+            await Post("/validarcliente", etiquetas);
         }
 
         public async Task SendMultipleInstalls()
@@ -79,7 +83,9 @@ namespace Client.Service
                     Encoding.ASCII,
                     "application/json"
                 );
+
                 jsonBody.Headers.Add("request-key", "ABC123");
+                jsonBody.Headers.Add("request-hash", Encryption.EncryptKey("ABC123"));
 
                 string uri = string.Format(
                     "https://{0}:{1}{2}",
@@ -93,7 +99,7 @@ namespace Client.Service
             }
             catch (Exception err)
             {
-                Reporter.ReportError(err.Message);
+                Reporter.ReportError(err.Message, false);
             }
         }
 

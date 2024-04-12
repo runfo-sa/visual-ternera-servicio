@@ -14,10 +14,13 @@ namespace Client.Service
         /// <br/>
         /// Abre el explorador de archivos con el log seleccionado.
         /// </summary>
-        public static void ReportError(string msg)
+        public static void ReportError(string msg, bool openFolder = true)
         {
             var file = Logger.Log(FOLDER_PATH, msg);
-            System.Diagnostics.Process.Start("explorer.exe", string.Format("/select, \"{0}\"", file));
+            if (openFolder)
+            {
+                System.Diagnostics.Process.Start("explorer.exe", string.Format("/select, \"{0}\"", file));
+            }
         }
     }
 }

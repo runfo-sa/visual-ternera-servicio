@@ -4,6 +4,7 @@
 POST {{Server_HostAddress}}/validarcliente
 Content-Type: application/json
 request-key: ABC123
+request-hash: ZVh/7rh3ThlWjNQb0tZkvb3C4/5HBHqteNZ9kaXmYNk=
 
 {
   "name": "192.168.10.25",
