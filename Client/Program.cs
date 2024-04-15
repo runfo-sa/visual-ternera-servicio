@@ -7,18 +7,26 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        var builder = Host.CreateApplicationBuilder(args);
-        builder.Services.AddWindowsService(options => options.ServiceName = "Visual Ternera - Controlador de Etiquetas");
+        ILogger _logger = LoggerFactory.Create(builder => builder.AddEventLog()).CreateLogger("Program");
 
-        if (OperatingSystem.IsWindows())
+        try
         {
+            var builder = Host.CreateApplicationBuilder(args);
+            builder.Services.AddWindowsService(options => options.ServiceName = "Visual Ternera - Controlador de Etiquetas");
+
             LoggerProviderOptions.RegisterProviderOptions<EventLogSettings, EventLogLoggerProvider>(builder.Services);
+
+            builder.Services.AddSingleton<ConfigService>();
+            builder.Services.AddHostedService<Worker>();
+
+            var host = builder.Build();
+            host.Run();
         }
-
-        builder.Services.AddSingleton<ConfigService>();
-        builder.Services.AddHostedService<Worker>();
-
-        var host = builder.Build();
-        host.Run();
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "{Message}", ex.Message);
+            Reporter.ReportError(ex.Message);
+            Environment.Exit(1);
+        }
     }
 }

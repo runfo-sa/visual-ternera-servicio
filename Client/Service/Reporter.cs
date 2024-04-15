@@ -5,8 +5,8 @@ namespace Client.Service
     public static class Reporter
     {
         private static readonly string FOLDER_PATH = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "VisualTerneraService\\"
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "Visual Ternera Service\\Logs\\"
         );
 
         /// <summary>

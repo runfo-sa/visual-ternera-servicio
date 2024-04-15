@@ -3,10 +3,9 @@
     /// <summary>
     /// Registro de un archivo de etiquetas.
     /// </summary>
-    /// <param name="Name">Especificación: En minusculas</param>
     /// <param name="Hash">Especificación: SHA256</param>
-    /// <param name="Date">Especificación: dd/mm/yyyy hh:mm:ss</param>
-    public readonly record struct Etiqueta(string Hash, string Date, string Name);
+    /// <param name="Name">Especificación: En minusculas</param>
+    public readonly record struct Etiqueta(string Hash, string Name);
 
     /// <summary>
     /// Realiza una comparacion de <see cref="Etiqueta"/> solamente en base a <see cref="Etiqueta.Name"/>

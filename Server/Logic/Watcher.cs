@@ -6,10 +6,10 @@ namespace Server.Logic
     /// <summary>
     /// Observa la carpeta de Etiquetas en el servidor de Twins,
     /// para poder actualizar la lista en cuanto ocurra algun cambio.
-    /// 
+    ///
     /// <br/>
     /// <br/>
-    /// 
+    ///
     /// <b>TO-FIX: Debido a como funciona la clase <see cref="FileSystemWatcher"/>,
     /// esto puede generar multiples actualizaciones por un solo cambio, no muy eficiente.</b>
     /// </summary>

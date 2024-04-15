@@ -4,18 +4,34 @@ namespace Client.Service
 {
     public class ConfigService
     {
+        private const string DEFAULT_CONFIG = "[server]\r\nip = \"localhost\"\r\nport = \"7164\"\r\n\r\n[app]\r\nintervalo_mins = 10\r\nunidad = \"C:\"";
+
+        private readonly string _configPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "Visual Ternera Service\\config.toml"
+        );
+
         public ConfigModel Data { get; set; }
 
         public ConfigService()
         {
-            string configDump = File.ReadAllText("config.toml");
-            Data = Toml.ToModel<ConfigModel>(configDump);
+            if (Path.Exists(_configPath))
+            {
+                string configDump = File.ReadAllText(_configPath);
+                Data = Toml.ToModel<ConfigModel>(configDump);
+            }
+            else
+            {
+                Data = Toml.ToModel<ConfigModel>(DEFAULT_CONFIG);
+                Directory.CreateDirectory(Path.GetDirectoryName(_configPath)!);
+                File.WriteAllText(_configPath, DEFAULT_CONFIG);
+            }
         }
 
         public void Save()
         {
             string configDump = Toml.FromModel(Data);
-            File.WriteAllText("config.toml", configDump);
+            File.WriteAllText(_configPath, configDump);
         }
     }
 
@@ -27,14 +43,14 @@ namespace Client.Service
 
     public class Server
     {
-        public required string Ip { get; set; }
-        public required string Port { get; set; }
+        public string Ip { get; set; }
+        public string Port { get; set; }
     }
 
     public class App
     {
-        public required int IntervaloMins { get; set; }
-        public required string Unidad { get; set; }
+        public int IntervaloMins { get; set; }
+        public string Unidad { get; set; }
         public string? PiPath { get; set; }
     }
 }

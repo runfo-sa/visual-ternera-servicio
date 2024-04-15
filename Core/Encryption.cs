@@ -7,6 +7,7 @@ namespace Core
     {
         // TODO! Deffinir las claves
         private const string PUBLIC_KEY = "ABC123";
+
         private const string PRIVATE_KEY = "QWERTY987";
 
         public static string EncryptKey(string publicKey = PUBLIC_KEY)

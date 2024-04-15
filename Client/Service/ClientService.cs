@@ -10,18 +10,33 @@ namespace Client.Service
     /// </summary>
     public sealed class ClientService
     {
-        private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        internal class HttpClientHandlerInsecure : HttpClientHandler
+        {
+            internal HttpClientHandlerInsecure()
+            {
+                ServerCertificateCustomValidationCallback = DangerousAcceptAnyServerCertificateValidator;
+            }
+        }
+
+        private readonly JsonSerializerOptions _jsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        private readonly ILogger<Worker> _logger = null!;
         private readonly ConfigService _config = null!;
-        private readonly HttpClient _client = new();
         private readonly string _ip = null!;
+        private readonly HttpClient _client = new(new HttpClientHandlerInsecure());
 
         // Indica el estado de este cliente
         private readonly bool _error = false;
+
         private readonly string? _errorMsg;
 
-        public ClientService(ConfigService config)
+        public ClientService(ConfigService config, ILogger<Worker> logger)
         {
             _config = config;
+            _logger = logger;
 
             // Busca la IPv4 de esta maquina
             foreach (IPAddress ip in Dns.GetHostEntry(Dns.GetHostName()).AddressList)
@@ -45,11 +60,13 @@ namespace Client.Service
                     _ = SendMultipleInstalls();
                     _error = true;
                     _errorMsg = err.Message + "\n" + string.Join('\n', err.Paths);
+                    _logger.LogError(err, "{Message}", err.Message);
                 }
                 catch (Exception err)
                 {
                     _error = true;
                     _errorMsg = err.Message;
+                    _logger.LogError(err, "{Message}", err.Message);
                 }
             }
         }
@@ -85,20 +102,15 @@ namespace Client.Service
                 );
 
                 jsonBody.Headers.Add("request-key", "ABC123");
-                jsonBody.Headers.Add("request-hash", Encryption.EncryptKey("ABC123"));
+                jsonBody.Headers.Add("request-hash", Encryption.EncryptKey());
 
-                string uri = string.Format(
-                    "https://{0}:{1}{2}",
-                    _config.Data.Server!.Ip,
-                    _config.Data.Server!.Port,
-                    route
-                );
-
+                string uri = $"http://{_config.Data.Server!.Ip}:{_config.Data.Server!.Port}{route}";
                 HttpResponseMessage response = await _client.PostAsync(uri, jsonBody);
                 response.EnsureSuccessStatusCode();
             }
             catch (Exception err)
             {
+                _logger.LogError(err, "{Message}", err.Message);
                 Reporter.ReportError(err.Message, false);
             }
         }
@@ -135,7 +147,9 @@ namespace Client.Service
 
         private class NoInstallsFound : Exception
         {
-            public NoInstallsFound() : base("No se encontro ninguna instalación de PiQuatro") { }
+            public NoInstallsFound() : base("No se encontro ninguna instalación de PiQuatro")
+            {
+            }
         }
 
         private class MultipleInstalls(string[] paths) : Exception("Se encontraron mas de una instalación de PiQuatro")

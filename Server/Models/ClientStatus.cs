@@ -14,6 +14,7 @@ namespace Server.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         [Column(Order = 1)]
         public int Id { get; set; }
+
         public string Cliente { get; set; }
         public Status Estado { get; set; }
         public DateTime UltimaConexion { get; set; }

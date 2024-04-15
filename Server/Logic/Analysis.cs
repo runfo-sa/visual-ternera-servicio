@@ -34,7 +34,7 @@ namespace Server.Logic
             if (status != Status.Okay)
             {
                 var commonpath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-                var path = Path.Combine(commonpath, "VisualTerneraServer\\" + client.Name);
+                var path = Path.Combine(commonpath, "Visual Ternera Server\\" + client.Name);
 
                 string list = (sobrantes is not null && status == Status.Sobrantes) ?
                     "Sobrantes:\n" + string.Join('\n', sobrantes) : (sobrantes is not null) ?

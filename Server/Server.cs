@@ -4,6 +4,7 @@ using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
 using Server.Logic;
 using Server.Models;
+using System.Diagnostics;
 using System.Net;
 using System.Threading.RateLimiting;
 
@@ -49,34 +50,36 @@ namespace Server
             Watcher watcher = app.Services.GetService<Watcher>()
                 ?? throw new Exception("La carpeta de etiquetas del servidor no esta siendo observada.");
 
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+            app.UseSwagger();
+            app.UseSwaggerUI();
 
             app.UseHttpsRedirection();
 
-            // Middleware que verifica si es una conexión valida y la termina en caso de no serlo.
             app.Use(async (context, next) =>
             {
-                var query = context.Request.Headers.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-                StringValues key;
-                StringValues hash;
-
-                if (!query.TryGetValue("request-key", out key)
-                    || key.IsNullOrEmpty()
-                    || !query.TryGetValue("request-hash", out hash)
-                    || hash.IsNullOrEmpty()
-                    // Comprobamos que el hash y key recibidos sean coherentes
-                    || Encryption.EncryptKey(key!) != hash
-                    // Comprobamos que podemos obtener el mismo hash con nuestra clave publica y privada
-                    || Encryption.EncryptKey() != hash)
+                // Middleware que verifica si es una conexión valida y la termina en caso de no serlo.
+                // Solamente para estos endpoints.
+                if (context.Request.Path.StartsWithSegments("/validarcliente") ||
+                    context.Request.Path.StartsWithSegments("/multiplesinstalaciones"))
                 {
-                    context.Response.StatusCode = (Int32)HttpStatusCode.Unauthorized;
-                    await context.Response.WriteAsync("Unauthorized");
-                    return;
+                    var query = context.Request.Headers.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+                    StringValues key;
+                    StringValues hash;
+
+                    if (!query.TryGetValue("request-key", out key)
+                        || key.IsNullOrEmpty()
+                        || !query.TryGetValue("request-hash", out hash)
+                        || hash.IsNullOrEmpty()
+                        // Comprobamos que el hash y key recibidos sean coherentes
+                        || Encryption.EncryptKey(key!) != hash
+                        // Comprobamos que podemos obtener el mismo hash con nuestra clave publica y privada
+                        || Encryption.EncryptKey() != hash)
+                    {
+                        context.Response.StatusCode = (Int32)HttpStatusCode.Unauthorized;
+                        await context.Response.WriteAsync("Unauthorized");
+                        return;
+                    }
                 }
 
                 await next();
@@ -121,13 +124,30 @@ namespace Server
                 await db.SaveChangesAsync();
 
                 var commonpath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-                var path = Path.Combine(commonpath, "VisualTerneraServer\\" + client.Name);
+                var path = Path.Combine(commonpath, "Visual Ternera Server\\" + client.Name);
 
                 Logger.Log(path, "Se encontraron mas de una instalación de PiQuatro, revisar el log del cliente para mas información.");
 
-                return TypedResults.Ok();
+                return TypedResults.Ok(Enum.GetName(typeof(Status), Status.MultipleInstalaciones));
             })
             .WithName("PostMultiplesInstalaciones")
+            .WithOpenApi();
+
+            app.MapGet("/obtenercliente", async (string key) =>
+            {
+                string clientPath = "C:\\Users\\Agustin.Marco\\Projects\\Apps\\C#\\visual_ternera\\Service\\Client\\bin\\Release\\net8.0\\publish\\win-x64\\Client.zip";
+                var bytes = await File.ReadAllBytesAsync(clientPath);
+                return TypedResults.File(bytes, "application/zip", "Client.zip");
+            })
+            .WithName("GetObtenerCliente")
+            .WithOpenApi();
+
+            app.MapGet("/clienteversion", () =>
+            {
+                string clientPath = "C:\\Users\\Agustin.Marco\\Projects\\Apps\\C#\\visual_ternera\\Service\\Client\\bin\\Release\\net8.0\\publish\\win-x64\\Client.exe";
+                return TypedResults.Ok(FileVersionInfo.GetVersionInfo(clientPath).FileVersion);
+            })
+            .WithName("GetVersionCliente")
             .WithOpenApi();
 
             app.Run();

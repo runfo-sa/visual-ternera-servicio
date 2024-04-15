@@ -21,10 +21,9 @@ namespace Core
                 var f = files[i];
 
                 string name = Path.GetFileNameWithoutExtension(f).ToLower();
-                string date = File.GetLastWriteTime(f).ToString();
                 string hash = GetHashString(hasher.ComputeHash(File.ReadAllBytes(f)));
 
-                etiquetas[i] = new Etiqueta(hash, date, name);
+                etiquetas[i] = new Etiqueta(hash, name);
             }
 
             return etiquetas;
