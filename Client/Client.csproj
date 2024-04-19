@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-Client-b3a3b325-0b9d-407d-8e33-e4aa5cb0e1e5</UserSecretsId>
 	<FileVersion>1.0.0.0</FileVersion>
+	<AssemblyVersion>1.0.0.0</AssemblyVersion>
 	<Description>Servicio encargado de informar al Servidor del estado de Etiquetas</Description>
   </PropertyGroup>
 
@@ -22,6 +23,9 @@
   <ItemGroup>
     <None Update="config.toml">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="installer.ps1">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 </Project>

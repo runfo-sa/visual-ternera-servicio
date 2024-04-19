@@ -38,7 +38,7 @@ namespace Server
                 .AddFixedWindowLimiter(policyName: "fixed", options =>
                 {
                     options.PermitLimit = 100;
-                    options.Window = TimeSpan.FromMinutes(5);
+                    options.Window = TimeSpan.FromMinutes(10);
                     options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
                     options.QueueLimit = 50;
                 })
@@ -53,7 +53,7 @@ namespace Server
             app.UseSwagger();
             app.UseSwaggerUI();
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
 
             app.Use(async (context, next) =>
             {
@@ -135,17 +135,20 @@ namespace Server
 
             app.MapGet("/obtenercliente", async (string key) =>
             {
-                string clientPath = "C:\\Users\\Agustin.Marco\\Projects\\Apps\\C#\\visual_ternera\\Service\\Client\\bin\\Release\\net8.0\\publish\\win-x64\\Client.zip";
-                var bytes = await File.ReadAllBytesAsync(clientPath);
-                return TypedResults.File(bytes, "application/zip", "Client.zip");
+                if (key != Encryption.DOWNLOAD_KEY)
+                {
+                    return Results.Unauthorized();
+                }
+
+                var bytes = await File.ReadAllBytesAsync("client-repo\\Client.zip");
+                return Results.File(bytes, "application/zip", "Client.zip");
             })
             .WithName("GetObtenerCliente")
             .WithOpenApi();
 
             app.MapGet("/clienteversion", () =>
             {
-                string clientPath = "C:\\Users\\Agustin.Marco\\Projects\\Apps\\C#\\visual_ternera\\Service\\Client\\bin\\Release\\net8.0\\publish\\win-x64\\Client.exe";
-                return TypedResults.Ok(FileVersionInfo.GetVersionInfo(clientPath).FileVersion);
+                return TypedResults.Ok(FileVersionInfo.GetVersionInfo("client-repo\\Client.exe").FileVersion);
             })
             .WithName("GetVersionCliente")
             .WithOpenApi();

@@ -4,7 +4,7 @@ namespace Client.Service
 {
     public class ConfigService
     {
-        private const string DEFAULT_CONFIG = "[server]\r\nip = \"localhost\"\r\nport = \"7164\"\r\n\r\n[app]\r\nintervalo_mins = 10\r\nunidad = \"C:\"";
+        private const string DEFAULT_CONFIG = "[server]\r\nip = \"localhost\"\r\nport = \"5000\"\r\n\r\n[app]\r\nintervalo_mins = 180\r\nunidad = \"C:\"";
 
         private readonly string _configPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),

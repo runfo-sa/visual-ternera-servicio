@@ -1,5 +1,7 @@
 ﻿using Core;
-using System.Net;
+using System.Diagnostics;
+using System.IO.Compression;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
@@ -23,60 +25,25 @@ namespace Client.Service
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
-        private readonly ILogger<Worker> _logger = null!;
-        private readonly ConfigService _config = null!;
         private readonly string _ip = null!;
+        private readonly ConfigService _config = null!;
         private readonly HttpClient _client = new(new HttpClientHandlerInsecure());
 
-        // Indica el estado de este cliente
-        private readonly bool _error = false;
-
-        private readonly string? _errorMsg;
-
-        public ClientService(ConfigService config, ILogger<Worker> logger)
+        public ClientService(ConfigService config)
         {
             _config = config;
-            _logger = logger;
 
             // Busca la IPv4 de esta maquina
-            foreach (IPAddress ip in Dns.GetHostEntry(Dns.GetHostName()).AddressList)
-            {
-                if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                {
-                    _ip = ip.ToString();
-                    break;
-                }
-            }
+            _ip = Network.GetIpAddress();
 
             if (config.Data.App!.PiPath is null)
             {
-                try
-                {
-                    config.Data.App.PiPath = FindPiQuatro(config.Data.App.Unidad);
-                    config.Save();
-                }
-                catch (MultipleInstalls err)
-                {
-                    _ = SendMultipleInstalls();
-                    _error = true;
-                    _errorMsg = err.Message + "\n" + string.Join('\n', err.Paths);
-                    _logger.LogError(err, "{Message}", err.Message);
-                }
-                catch (Exception err)
-                {
-                    _error = true;
-                    _errorMsg = err.Message;
-                    _logger.LogError(err, "{Message}", err.Message);
-                }
+                _ = CheckPiQuatroAsync();
             }
         }
 
         public async Task SendEtiquetas()
         {
-            if (_error)
-            {
-                throw new Exception(_errorMsg);
-            }
             Etiqueta[] etiquetas = Scanner.GetEtiquetas(_config.Data.App!.PiPath!);
             await Post("/validarcliente", etiquetas);
         }
@@ -101,7 +68,7 @@ namespace Client.Service
                     "application/json"
                 );
 
-                jsonBody.Headers.Add("request-key", "ABC123");
+                jsonBody.Headers.Add("request-key", Encryption.PUBLIC_KEY);
                 jsonBody.Headers.Add("request-hash", Encryption.EncryptKey());
 
                 string uri = $"http://{_config.Data.Server!.Ip}:{_config.Data.Server!.Port}{route}";
@@ -110,8 +77,21 @@ namespace Client.Service
             }
             catch (Exception err)
             {
-                _logger.LogError(err, "{Message}", err.Message);
-                Reporter.ReportError(err.Message, false);
+                Reporter.ReportError(err.Message);
+            }
+        }
+
+        public async Task CheckPiQuatroAsync()
+        {
+            try
+            {
+                _config.Data.App!.PiPath = FindPiQuatro(_config.Data.App.Unidad);
+                _config.Save();
+            }
+            catch (MultipleInstalls)
+            {
+                await SendMultipleInstalls();
+                throw;
             }
         }
 
@@ -145,16 +125,54 @@ namespace Client.Service
             return Directory.GetParent(files[0])!.FullName + "\\Etiquetas";
         }
 
-        private class NoInstallsFound : Exception
-        {
-            public NoInstallsFound() : base("No se encontro ninguna instalación de PiQuatro")
-            {
-            }
-        }
+        private class NoInstallsFound() : Exception("No se encontro ninguna instalación de PiQuatro")
+        { }
 
         private class MultipleInstalls(string[] paths) : Exception("Se encontraron mas de una instalación de PiQuatro")
         {
             public string[] Paths = paths;
+        }
+
+        public async Task GetUpdate()
+        {
+            try
+            {
+                string uri = $"http://{_config.Data.Server!.Ip}:{_config.Data.Server!.Port}/clienteversion";
+                HttpResponseMessage response = await _client.GetAsync(uri);
+                response.EnsureSuccessStatusCode();
+
+                string content = await response.Content.ReadAsStringAsync();
+                Version ver = Version.Parse(content.Replace('"', ' '));
+
+                if (Assembly.GetExecutingAssembly().GetName().Version < ver)
+                {
+                    uri = $"http://{_config.Data.Server!.Ip}:{_config.Data.Server!.Port}/obtenercliente?key={Encryption.DOWNLOAD_KEY}";
+                    response = _client.GetAsync(uri).GetAwaiter().GetResult();
+                    response.EnsureSuccessStatusCode();
+
+                    string filename = response.Content.Headers.ContentDisposition!.FileName!;
+                    string path = Path.Combine(Path.GetTempPath(), "VSTCTemp");
+                    string filepath = Path.Combine(path, filename);
+                    Directory.CreateDirectory(path);
+
+                    using (var fs = new FileStream(filepath, FileMode.Create))
+                    {
+                        response.Content.CopyToAsync(fs).GetAwaiter().GetResult();
+                    }
+
+                    ZipFile.ExtractToDirectory(filepath, path, true);
+
+                    using var process = new Process();
+                    process.StartInfo = new ProcessStartInfo("powershell.exe", $"-ExecutionPolicy Bypass -File \"{Path.Combine(path, "installer.ps1")}\"");
+                    process.Start();
+
+                    Environment.Exit(0);
+                }
+            }
+            catch (Exception err)
+            {
+                Reporter.ReportError(err.Message);
+            }
         }
     }
 }

@@ -33,3 +33,5 @@ request-hash: ZVh/7rh3ThlWjNQb0tZkvb3C4/5HBHqteNZ9kaXmYNk=
 }
 
 ###
+
+GET {{Server_HostAddress}}/obtenercliente?key=abc

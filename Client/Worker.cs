@@ -2,11 +2,11 @@ using Client.Service;
 
 namespace Client
 {
-    public class Worker(ILogger<Worker> logger, ConfigService config) : BackgroundService
+    public class Worker(ConfigService config) : BackgroundService
     {
-        private readonly ClientService _client = new(config, logger);
-        private static readonly Mutex s_mutEtiquetas = new(true);
-        private static readonly Mutex s_mutPiQuatro = new(true);
+        private readonly ClientService _client = new(config);
+        private static readonly Mutex s_mutPiQuatro = new(false, @"Local\PiQuatroMutx");
+        private static readonly Mutex s_mutEtiquetas = new(false, @"Local\EtiquetasMutx");
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -27,13 +27,11 @@ namespace Client
             while (!stoppingToken.IsCancellationRequested)
             {
                 s_mutEtiquetas.WaitOne();
-                // Ejecuta la recompilación de etiquetas
-                await _client.SendEtiquetas();
+                _client.SendEtiquetas().Wait(stoppingToken);
                 s_mutEtiquetas.ReleaseMutex();
 
-                // Si el tiempo intervalo no fue configurado se asiga a 10 minutos por default
-                double interval = config.Data.App?.IntervaloMins ?? 10.0;
-
+                // Si el tiempo intervalo no fue configurado se asiga a 3 horas por default.
+                double interval = config.Data.App?.IntervaloMins ?? 180.0;
                 await Task.Delay(TimeSpan.FromMinutes(interval), stoppingToken);
             }
         }
@@ -42,14 +40,14 @@ namespace Client
         {
             while (!stoppingToken.IsCancellationRequested)
             {
+                // Calcula el tiempo que falta hasta las 2 de la mañana.
+                DateTime midnight = DateTime.Today.AddDays(1).AddHours(2);
+                double remaining = midnight.Subtract(DateTime.Now).TotalMinutes;
+                await Task.Delay(TimeSpan.FromMinutes(remaining), stoppingToken);
+
                 s_mutPiQuatro.WaitOne();
-                // await _client.CheckPiQuatro()
+                _client.CheckPiQuatroAsync().Wait(stoppingToken);
                 s_mutPiQuatro.ReleaseMutex();
-
-                // Si el tiempo intervalo no fue configurado se asiga a 10 minutos por default
-                double interval = config.Data.App?.IntervaloMins ?? 10.0;
-
-                await Task.Delay(TimeSpan.FromMinutes(interval), stoppingToken);
             }
         }
 
@@ -57,18 +55,18 @@ namespace Client
         {
             while (!stoppingToken.IsCancellationRequested)
             {
+                // Calcula el tiempo que falta hasta la media noche.
+                DateTime midnight = DateTime.Today.AddDays(1);
+                double remaining = midnight.Subtract(DateTime.Now).TotalMinutes;
+                await Task.Delay(TimeSpan.FromMinutes(remaining), stoppingToken);
+
                 s_mutEtiquetas.WaitOne();
                 s_mutPiQuatro.WaitOne();
 
-                //await _client.GetUpdate();
+                _client.GetUpdate().Wait(stoppingToken);
 
                 s_mutPiQuatro.ReleaseMutex();
                 s_mutEtiquetas.ReleaseMutex();
-
-                // Si el tiempo intervalo no fue configurado se asiga a 10 minutos por default
-                double interval = config.Data.App?.IntervaloMins ?? 10.0;
-
-                await Task.Delay(TimeSpan.FromMinutes(interval), stoppingToken);
             }
         }
     }

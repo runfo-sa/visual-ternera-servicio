@@ -8,7 +8,7 @@
         Okay = 0,
         Sobrantes = 2,
         Desactualizada = 1,
-        DesactualizadaSobrantes = 3,
         MultipleInstalaciones = 4,
+        DesactualizadaSobrantes = 3,
     }
 }
