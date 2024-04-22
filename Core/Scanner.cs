@@ -32,7 +32,7 @@ namespace Core
         /// <summary>
         /// Convierte una array de <see cref="byte"/> en una <see cref="string"/> hexadecimal
         /// </summary>
-        private static string GetHashString(byte[] bytes)
+        public static string GetHashString(byte[] bytes)
         {
             StringBuilder sb = new();
             foreach (byte b in bytes)

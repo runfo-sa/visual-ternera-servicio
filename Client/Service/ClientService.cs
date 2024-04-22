@@ -1,7 +1,6 @@
 ﻿using Core;
 using System.Diagnostics;
-using System.IO.Compression;
-using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -141,12 +140,12 @@ namespace Client.Service
                 HttpResponseMessage response = await _client.GetAsync(uri);
                 response.EnsureSuccessStatusCode();
 
-                string content = await response.Content.ReadAsStringAsync();
-                Version ver = Version.Parse(content.Replace('"', ' '));
+                string serverHash = await response.Content.ReadAsStringAsync();
+                string localHash = Scanner.GetHashString(SHA256.HashData(File.ReadAllBytes(AppDomain.CurrentDomain.BaseDirectory + "Client.exe")));
 
-                if (Assembly.GetExecutingAssembly().GetName().Version < ver)
+                if (localHash != serverHash.Trim('"'))
                 {
-                    uri = $"http://{_config.Data.Server!.Ip}:{_config.Data.Server!.Port}/obtenercliente?key={Encryption.DOWNLOAD_KEY}";
+                    uri = $"http://{_config.Data.Server!.Ip}:{_config.Data.Server!.Port}/instalador?key={Encryption.DOWNLOAD_KEY}";
                     response = _client.GetAsync(uri).GetAwaiter().GetResult();
                     response.EnsureSuccessStatusCode();
 
@@ -160,10 +159,8 @@ namespace Client.Service
                         response.Content.CopyToAsync(fs).GetAwaiter().GetResult();
                     }
 
-                    ZipFile.ExtractToDirectory(filepath, path, true);
-
                     using var process = new Process();
-                    process.StartInfo = new ProcessStartInfo("powershell.exe", $"-ExecutionPolicy Bypass -File \"{Path.Combine(path, "installer.ps1")}\"");
+                    process.StartInfo = new ProcessStartInfo("powershell.exe", $"-ExecutionPolicy Bypass -File \"{filepath}\"");
                     process.Start();
 
                     Environment.Exit(0);

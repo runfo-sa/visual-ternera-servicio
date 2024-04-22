@@ -4,7 +4,6 @@ using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
 using Server.Logic;
 using Server.Models;
-using System.Diagnostics;
 using System.Net;
 using System.Threading.RateLimiting;
 
@@ -12,6 +11,11 @@ namespace Server
 {
     public static class Server
     {
+        private static readonly string LogFolder = "Visual Ternera Server\\";
+        private static readonly string ClientFolder = "client-repo";
+        private static readonly string ClientFile = "Client.exe";
+        private static readonly string InstallerFile = "installer.ps1";
+
         public static void Run(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
@@ -30,8 +34,9 @@ namespace Server
                 });
             });
 
-            // Watcher singleton
-            builder.Services.AddSingleton<Watcher>();
+            // Watchers singleton
+            builder.Services.AddSingleton<WatcherPiQuatro>();
+            builder.Services.AddSingleton(new WatcherClient(ClientFolder, ClientFile));
 
             // Limita la cantidad de pedidos a 100 cada 5 minutos
             builder.Services.AddRateLimiter(_ => _
@@ -45,15 +50,15 @@ namespace Server
             );
 
             var app = builder.Build();
-            app.UseRateLimiter();
-
-            Watcher watcher = app.Services.GetService<Watcher>()
-                ?? throw new Exception("La carpeta de etiquetas del servidor no esta siendo observada.");
 
             app.UseSwagger();
             app.UseSwaggerUI();
+            app.UseRateLimiter();
 
             //app.UseHttpsRedirection();
+
+            var piQuatroWatch = app.Services.GetService<WatcherPiQuatro>();
+            var clientWatch = app.Services.GetService<WatcherClient>();
 
             app.Use(async (context, next) =>
             {
@@ -90,7 +95,7 @@ namespace Server
             // API Endpoints:
             app.MapPost("/validarcliente", async (ClientStatusDb db, Request client, HttpContext context) =>
             {
-                Status status = Analysis.CheckClient(client, watcher.ServerEtiquetas);
+                Status status = Analysis.CheckClient(client, piQuatroWatch!.ServerEtiquetas);
 
                 ClientStatus? clientStatus = db.Find(client.Name);
                 if (clientStatus is null)
@@ -124,7 +129,7 @@ namespace Server
                 await db.SaveChangesAsync();
 
                 var commonpath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-                var path = Path.Combine(commonpath, "Visual Ternera Server\\" + client.Name);
+                var path = Path.Combine(commonpath, LogFolder + client.Name);
 
                 Logger.Log(path, "Se encontraron mas de una instalación de PiQuatro, revisar el log del cliente para mas información.");
 
@@ -133,22 +138,37 @@ namespace Server
             .WithName("PostMultiplesInstalaciones")
             .WithOpenApi();
 
-            app.MapGet("/obtenercliente", async (string key) =>
+            app.MapGet("/obtenercliente", async (string key, HttpContext context) =>
             {
                 if (key != Encryption.DOWNLOAD_KEY)
                 {
+                    await context.Response.WriteAsync("Unauthorized");
                     return Results.Unauthorized();
                 }
 
-                var bytes = await File.ReadAllBytesAsync("client-repo\\Client.zip");
-                return Results.File(bytes, "application/zip", "Client.zip");
+                var bytes = await File.ReadAllBytesAsync(Path.Combine(ClientFolder, ClientFile));
+                return Results.File(bytes, "application/vnd.microsoft.portable-executable", ClientFile);
             })
             .WithName("GetObtenerCliente")
             .WithOpenApi();
 
+            app.MapGet("/instalador", async (string key, HttpContext context) =>
+            {
+                if (key != Encryption.DOWNLOAD_KEY)
+                {
+                    await context.Response.WriteAsync("Unauthorized");
+                    return Results.Unauthorized();
+                }
+
+                var bytes = await File.ReadAllBytesAsync(Path.Combine(ClientFolder, InstallerFile));
+                return Results.File(bytes, "text/plain", InstallerFile);
+            })
+            .WithName("GetInstalador")
+            .WithOpenApi();
+
             app.MapGet("/clienteversion", () =>
             {
-                return TypedResults.Ok(FileVersionInfo.GetVersionInfo("client-repo\\Client.exe").FileVersion);
+                return TypedResults.Ok(clientWatch!.ClientHash);
             })
             .WithName("GetVersionCliente")
             .WithOpenApi();

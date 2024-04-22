@@ -17,13 +17,7 @@
 
             string separator = new('-', 128);
             File.AppendAllText(file,
-                string.Format(
-                    "{0}\nError - {1}\n{2}\n{3}\n\n",
-                    separator,
-                    date.ToString("HH:mm:ss"),
-                    separator,
-                    msg
-                )
+                $"{separator}{Environment.NewLine}Error - {date:HH:mm:ss}{Environment.NewLine}{separator}{Environment.NewLine}{msg}{Environment.NewLine}"
             );
 
             return file;

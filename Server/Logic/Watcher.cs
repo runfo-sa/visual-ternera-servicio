@@ -1,35 +1,26 @@
-﻿using Core;
-using System.Collections.Frozen;
-
-namespace Server.Logic
+﻿namespace Server.Logic
 {
     /// <summary>
-    /// Observa la carpeta de Etiquetas en el servidor de Twins,
-    /// para poder actualizar la lista en cuanto ocurra algun cambio.
-    ///
+    /// Clase abstracta que se encarga de revisar una carpeta para ejecutar la funcion implementada.
     /// <br/>
-    /// <br/>
-    ///
     /// <b>TO-FIX: Debido a como funciona la clase <see cref="FileSystemWatcher"/>,
     /// esto puede generar multiples actualizaciones por un solo cambio, no muy eficiente.</b>
     /// </summary>
-    public class Watcher
+    public abstract class Watcher
     {
-        private const string SERVER_PATH = "\\\\twinssrv\\Twins\\PiQuatro\\Etiquetas";
+        private readonly FileSystemWatcher watcher;
 
-        private readonly FileSystemWatcher watcher = new()
+        public Watcher(string path, string filter)
         {
-            Path = SERVER_PATH,
-            Filter = "*.e01",
-            EnableRaisingEvents = true,
-            IncludeSubdirectories = false,
-            NotifyFilter = NotifyFilters.Attributes | NotifyFilters.CreationTime | NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size
-        };
+            watcher = new()
+            {
+                Path = path,
+                Filter = filter,
+                EnableRaisingEvents = true,
+                IncludeSubdirectories = false,
+                NotifyFilter = NotifyFilters.Attributes | NotifyFilters.CreationTime | NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size
+            };
 
-        public FrozenSet<Etiqueta> ServerEtiquetas = Scanner.GetEtiquetas(SERVER_PATH).ToFrozenSet();
-
-        public Watcher()
-        {
             watcher.Changed += UpdateList;
             watcher.Created += UpdateList;
             watcher.Deleted += UpdateList;
@@ -37,9 +28,6 @@ namespace Server.Logic
             watcher.Error += (object sender, ErrorEventArgs e) => Console.Error.WriteLine(e.GetException());
         }
 
-        private void UpdateList(object sender, FileSystemEventArgs e)
-        {
-            ServerEtiquetas = Scanner.GetEtiquetas(SERVER_PATH).ToFrozenSet();
-        }
+        public abstract void UpdateList(object sender, FileSystemEventArgs e);
     }
 }

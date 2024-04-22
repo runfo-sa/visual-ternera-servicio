@@ -1,4 +1,4 @@
-@Server_HostAddress = https://localhost:7164
+@Server_HostAddress = http://rafatest.runfosa.local:8088/VST
 
 
 POST {{Server_HostAddress}}/validarcliente
@@ -11,22 +11,18 @@ request-hash: ZVh/7rh3ThlWjNQb0tZkvb3C4/5HBHqteNZ9kaXmYNk=
   "etiquetas": [
     {
       "hash": "ASVFWEHWHWE684765weggewegwegwgggwwWW",
-      "date": "2024-04-08 11:20:55",
       "name": "primaria_china"
     },
     {
       "hash": "ASVFWEHWHWE684765weggewegwegwgggwwWW",
-      "date": "2024-04-08 11:20:55",
       "name": "primaria_china1"
     },
     {
       "hash": "ASVFWEHWHWE684765weggewegwegwgggwwWW",
-      "date": "2024-04-08 11:20:55",
       "name": "primaria_china2"
     },
     {
       "hash": "ASVFWEHWHWE684765weggewegwegwgggwwWW",
-      "date": "2024-04-08 11:20:55",
       "name": "primaria_china3"
     }
   ]

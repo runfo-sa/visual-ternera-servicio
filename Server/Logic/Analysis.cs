@@ -37,12 +37,12 @@ namespace Server.Logic
                 var path = Path.Combine(commonpath, "Visual Ternera Server\\" + client.Name);
 
                 string list = (sobrantes is not null && status == Status.Sobrantes) ?
-                    "Sobrantes:\n" + string.Join('\n', sobrantes) : (sobrantes is not null) ?
+                    $"Sobrantes:{Environment.NewLine}" + string.Join(Environment.NewLine, sobrantes) : (sobrantes is not null) ?
 
-                    "Desactualizadas:\n" + string.Join('\n', desactualizadas) +
-                    "\nSobrantes:\n" + string.Join('\n', sobrantes)
+                    $"Desactualizadas:{Environment.NewLine}" + string.Join(Environment.NewLine, desactualizadas) +
+                    $"{Environment.NewLine}Sobrantes:{Environment.NewLine}" + string.Join(Environment.NewLine, sobrantes)
 
-                    : "Desactualizadas:\n" + string.Join('\n', desactualizadas);
+                    : $"Desactualizadas:{Environment.NewLine}" + string.Join(Environment.NewLine, desactualizadas);
 
                 Logger.Log(path, list);
             }

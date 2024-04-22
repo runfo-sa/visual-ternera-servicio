@@ -3,17 +3,18 @@
 
 $ServiceName = "VSTC"
 $DisplayName = "Visual Ternera - Controlador de Etiquetas"
-$Path = "C:\soft\Visual Ternera\Service\Client.exe"
+$FolderPath = "C:\soft\Visual Ternera\Service\"
+$FilePath = "C:\soft\Visual Ternera\Service\Client.exe"
 
-New-Item -ItemType Directory -Force -Path $Path
-Get-ChildItem -Path .\build -Recurse | Move-Item -Destination $Path -Force
+New-Item -ItemType Directory -Force -Path $FolderPath
+Invoke-WebRequest http://rafatest.runfosa.local:8089/obtenercliente?key=ABC123 -OutFile $FilePath
 
 $Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 if ($Service -eq $null)
 {
 	$params = @{
 	  Name = $ServiceName
-	  BinaryPathName = $Path
+	  BinaryPathName = $FilePath
 	  DisplayName = $DisplayName
 	  Description = "Controla el estado de etiquetas en este equipo."
 	}
