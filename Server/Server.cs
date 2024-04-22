@@ -20,7 +20,7 @@ namespace Server
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddSqlServer<ClientStatusDb>("Server=rafatest;Database=VisualTernera;Trusted_Connection=true;Encrypt=True;TrustServerCertificate=True");
+            builder.Services.AddDbContext<ClientStatusDb>();
 
             // Swager Docs
             builder.Services.AddEndpointsApiExplorer();
