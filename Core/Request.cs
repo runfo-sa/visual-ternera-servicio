@@ -5,5 +5,5 @@
     /// </summary>
     /// <param name="Name">Nombre identificador del cliente, es su IPv4</param>
     /// <param name="Etiquetas">Listado de etiquetas presentes en la maquina del cliente</param>
-    public record struct Request(string Name, Etiqueta[]? Etiquetas);
+    public record struct Request(string Name, Etiqueta[]? Etiquetas, string? Message = null);
 }

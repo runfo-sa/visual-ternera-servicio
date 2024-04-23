@@ -57,6 +57,7 @@ namespace Server
 
             //app.UseHttpsRedirection();
 
+            var authConfig = app.Configuration.GetSection("Auth").Get<AuthConfig>()!;
             var piQuatroWatch = app.Services.GetService<WatcherPiQuatro>();
             var clientWatch = app.Services.GetService<WatcherClient>();
 
@@ -77,9 +78,9 @@ namespace Server
                         || !query.TryGetValue("request-hash", out hash)
                         || hash.IsNullOrEmpty()
                         // Comprobamos que el hash y key recibidos sean coherentes
-                        || Encryption.EncryptKey(key!) != hash
+                        || Encryption.EncryptKey(key!, authConfig.ClavePrivada) != hash
                         // Comprobamos que podemos obtener el mismo hash con nuestra clave publica y privada
-                        || Encryption.EncryptKey() != hash)
+                        || Encryption.EncryptKey(authConfig.ClavePublica, authConfig.ClavePrivada) != hash)
                     {
                         context.Response.StatusCode = (Int32)HttpStatusCode.Unauthorized;
                         await context.Response.WriteAsync("Unauthorized");
@@ -131,16 +132,40 @@ namespace Server
                 var commonpath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
                 var path = Path.Combine(commonpath, LogFolder + client.Name);
 
-                Logger.Log(path, "Se encontraron mas de una instalación de PiQuatro, revisar el log del cliente para mas información.");
+                Logger.Log(path, $"Se encontraron mas de una instalación de PiQuatro:{Environment.NewLine}{client.Message}");
 
                 return TypedResults.Ok(Enum.GetName(typeof(Status), Status.MultipleInstalaciones));
             })
             .WithName("PostMultiplesInstalaciones")
             .WithOpenApi();
 
+            app.MapPost("/noinstalado", async (ClientStatusDb db, Request client, HttpContext context) =>
+            {
+                ClientStatus? clientStatus = db.Find(client.Name);
+                if (clientStatus is null)
+                {
+                    await db.EstadoCliente.AddAsync(new ClientStatus(client.Name, Status.NoInstalado));
+                }
+                else
+                {
+                    clientStatus.Estado = Status.NoInstalado;
+                    clientStatus.UltimaConexion = DateTime.Now;
+                }
+                await db.SaveChangesAsync();
+
+                var commonpath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+                var path = Path.Combine(commonpath, LogFolder + client.Name);
+
+                Logger.Log(path, "No se encontro una instalación de PiQuatro.");
+
+                return TypedResults.Ok(Enum.GetName(typeof(Status), Status.NoInstalado));
+            })
+            .WithName("PostNoInstalado")
+            .WithOpenApi();
+
             app.MapGet("/obtenercliente", async (string key, HttpContext context) =>
             {
-                if (key != Encryption.DOWNLOAD_KEY)
+                if (key != authConfig.ClaveDescarga)
                 {
                     await context.Response.WriteAsync("Unauthorized");
                     return Results.Unauthorized();
@@ -154,7 +179,7 @@ namespace Server
 
             app.MapGet("/instalador", async (string key, HttpContext context) =>
             {
-                if (key != Encryption.DOWNLOAD_KEY)
+                if (key != authConfig.ClaveDescarga)
                 {
                     await context.Response.WriteAsync("Unauthorized");
                     return Results.Unauthorized();

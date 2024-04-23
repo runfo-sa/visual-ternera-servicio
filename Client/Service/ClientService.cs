@@ -25,6 +25,7 @@ namespace Client.Service
         };
 
         private readonly string _ip = null!;
+        private string[] _foundInstallations = null!;
         private readonly ConfigService _config = null!;
         private readonly HttpClient _client = new(new HttpClientHandlerInsecure());
 
@@ -49,7 +50,12 @@ namespace Client.Service
 
         public async Task SendMultipleInstalls()
         {
-            await Post("/multiplesinstalaciones");
+            await Post("/multiplesinstalaciones", msg: string.Join(Environment.NewLine, _foundInstallations));
+        }
+
+        public async Task SendNoInstalls()
+        {
+            await Post("/noinstalado");
         }
 
         /// <summary>
@@ -57,18 +63,18 @@ namespace Client.Service
         /// <br/>
         /// Las lista de etiquetas es opcional.
         /// </summary>
-        private async Task Post(string route, Etiqueta[]? etiquetas = null)
+        private async Task Post(string route, Etiqueta[]? etiquetas = null, string? msg = null)
         {
             try
             {
                 StringContent jsonBody = new(
-                    JsonSerializer.Serialize(new Request(_ip, etiquetas), _jsonOptions),
+                    JsonSerializer.Serialize(new Request(_ip, etiquetas, msg), _jsonOptions),
                     Encoding.ASCII,
                     "application/json"
                 );
 
-                jsonBody.Headers.Add("request-key", Encryption.PUBLIC_KEY);
-                jsonBody.Headers.Add("request-hash", Encryption.EncryptKey());
+                jsonBody.Headers.Add("request-key", _config.Data.Auth!.ClavePublica);
+                jsonBody.Headers.Add("request-hash", Encryption.EncryptKey(_config.Data.Auth!.ClavePublica, _config.Data.Auth!.ClavePrivada));
 
                 string uri = $"http://{_config.Data.Server!.Ip}:{_config.Data.Server!.Port}{route}";
                 HttpResponseMessage response = await _client.PostAsync(uri, jsonBody);
@@ -92,6 +98,11 @@ namespace Client.Service
                 await SendMultipleInstalls();
                 throw;
             }
+            catch (NoInstallsFound)
+            {
+                await SendNoInstalls();
+                throw;
+            }
         }
 
         /// <summary>
@@ -100,10 +111,10 @@ namespace Client.Service
         /// <returns>Dirección donde PiQuatro guarda las etiquetas</returns>
         /// <exception cref="NoInstallsFound"/>
         /// <exception cref="MultipleInstalls"/>
-        private static string FindPiQuatro(string unidad)
+        private string FindPiQuatro(string unidad)
         {
             DateTime date = DateTime.Now;
-            string[] files = Array.FindAll(
+            _foundInstallations = Array.FindAll(
                 Directory.GetFiles(unidad + "\\", "PiQuatro.exe", new EnumerationOptions
                 {
                     IgnoreInaccessible = true,
@@ -112,16 +123,16 @@ namespace Client.Service
                 f => File.GetLastWriteTime(f) > date.AddYears(-1) && !f.Contains("test", StringComparison.CurrentCultureIgnoreCase)
             );
 
-            if (files.Length == 0)
+            if (_foundInstallations.Length == 0)
             {
                 throw new NoInstallsFound();
             }
-            else if (files.Length > 1)
+            else if (_foundInstallations.Length > 1)
             {
-                throw new MultipleInstalls(files);
+                throw new MultipleInstalls(_foundInstallations);
             }
 
-            return Directory.GetParent(files[0])!.FullName + "\\Etiquetas";
+            return Directory.GetParent(_foundInstallations[0])!.FullName + "\\Etiquetas";
         }
 
         private class NoInstallsFound() : Exception("No se encontro ninguna instalación de PiQuatro")
@@ -145,7 +156,7 @@ namespace Client.Service
 
                 if (localHash != serverHash.Trim('"'))
                 {
-                    uri = $"http://{_config.Data.Server!.Ip}:{_config.Data.Server!.Port}/instalador?key={Encryption.DOWNLOAD_KEY}";
+                    uri = $"http://{_config.Data.Server!.Ip}:{_config.Data.Server!.Port}/instalador?key={_config.Data.Auth!.ClaveDescarga}";
                     response = _client.GetAsync(uri).GetAwaiter().GetResult();
                     response.EnsureSuccessStatusCode();
 

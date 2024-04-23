@@ -41,7 +41,7 @@ namespace Client
             while (!stoppingToken.IsCancellationRequested)
             {
                 // Calcula el tiempo que falta hasta las 2 de la mañana.
-                DateTime midnight = DateTime.Today.AddDays(1).AddHours(2);
+                DateTime midnight = DateTime.Today.AddDays(1).AddHours(config.Data.App!.PiquatroTime);
                 double remaining = midnight.Subtract(DateTime.Now).TotalMinutes;
                 await Task.Delay(TimeSpan.FromMinutes(remaining), stoppingToken);
 
@@ -56,7 +56,7 @@ namespace Client
             while (!stoppingToken.IsCancellationRequested)
             {
                 // Calcula el tiempo que falta hasta la media noche.
-                DateTime midnight = DateTime.Today.AddDays(1);
+                DateTime midnight = DateTime.Today.AddDays(1).AddHours(config.Data.App!.UpdateTime);
                 double remaining = midnight.Subtract(DateTime.Now).TotalMinutes;
                 await Task.Delay(TimeSpan.FromMinutes(remaining), stoppingToken);
 
